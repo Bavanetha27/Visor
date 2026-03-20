@@ -3,19 +3,40 @@
   "displayName": "visor",
   "description": "Instant Code Understanding VS Code Extension",
   "version": "0.0.1",
+  "publisher": "Bavanetha27",
   "engines": {
     "vscode": "^1.110.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+"activationEvents": [
+    "onView:todoView",
+    "onCommand:visor.refresh"
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "visor-sidebar",
+          "title": "Visor",
+          "icon": "images/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "visor-sidebar": [
+        {
+          "id": "visorTodos",
+          "name": "Visor TODOs"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "visor.helloWorld",
-        "title": "Hello World"
+        "command": "visor.refresh",
+        "title": "Refresh TODOs"
       }
     ]
   },
