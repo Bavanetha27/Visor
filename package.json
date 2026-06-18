@@ -41,6 +41,24 @@
 
   "contributes": {
 
+    "configuration": {
+      "title": "Visor",
+      "properties": {
+        "visor.tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["TODO", "FIXME", "BUG"],
+          "description": "Keywords to scan for tasks"
+        },
+        "visor.ignoreFolders": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["node_modules", ".git", "dist", "build", "out"],
+          "description": "Folders to ignore when scanning for tasks"
+        }
+      }
+    },
+
     "viewsContainers": {
       "activitybar": [
         {

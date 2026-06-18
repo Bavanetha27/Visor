@@ -8,61 +8,92 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private filter: string = 'ALL';
     private search: string = '';
 
-    private refreshTimeout: NodeJS.Timeout | undefined;
+    private refreshTimeout: any;
 
     private _onDidChangeTreeData = new vscode.EventEmitter<void>();
     readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
+    private watcher: vscode.FileSystemWatcher;
 
     constructor() {
         this.initialScan();
 
         vscode.workspace.onDidSaveTextDocument(doc => this.scanSingleFile(doc));
         vscode.workspace.onDidChangeTextDocument(e => this.scanSingleFile(e.document));
+
+        this.watcher = vscode.workspace.createFileSystemWatcher('**/*');
+        this.watcher.onDidChange(uri => this.scanUri(uri));
+        this.watcher.onDidCreate(uri => this.scanUri(uri));
+        this.watcher.onDidDelete(uri => {
+            this.todos.delete(uri.fsPath);
+            this.refresh();
+        });
     }
 
     async initialScan() {
-        const files = await vscode.workspace.findFiles(
-            '**/*',
-            '**/{node_modules,.git,dist,build}/**'
-        );
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: "Visor: Scanning workspace for TODOs...",
+            cancellable: false
+        }, async () => {
+            const config = vscode.workspace.getConfiguration('visor');
+            const ignoreFolders = config.get<string[]>('ignoreFolders', ['node_modules', '.git', 'dist', 'build', 'out']);
+            const excludePattern = `**/{${ignoreFolders.join(',')}}/**`;
 
-        for (const file of files) {
-            try {
-                const doc = await vscode.workspace.openTextDocument(file);
-                this.processFile(doc);
-            } catch {}
-        }
+            const files = await vscode.workspace.findFiles('**/*', excludePattern);
 
-        this.refresh();
+            for (const file of files) {
+                await this.scanUri(file, true);
+            }
+            this.refresh();
+        });
     }
 
-    private scanTimeouts: Map<string, NodeJS.Timeout> = new Map();
+    private scanTimeouts: Map<string, any> = new Map();
 
     scanSingleFile(doc: vscode.TextDocument) {
-
         if (doc.getText().length > 100000) return;
-
         if (this.fileVersions.get(doc.uri.fsPath) === doc.version) return;
 
         this.fileVersions.set(doc.uri.fsPath, doc.version);
 
-        const fsPath = doc.uri.fsPath;
+        this.debounceScan(doc.uri, doc.getText());
+    }
+
+    async scanUri(uri: vscode.Uri, isInitial = false) {
+        try {
+            const data = await vscode.workspace.fs.readFile(uri);
+            const content = new TextDecoder('utf-8').decode(data);
+            if (content.length > 100000) return;
+            
+            if (isInitial) {
+                this.processContent(uri, content);
+            } else {
+                this.debounceScan(uri, content);
+            }
+        } catch {}
+    }
+
+    private debounceScan(uri: vscode.Uri, content: string) {
+        const fsPath = uri.fsPath;
         if (this.scanTimeouts.has(fsPath)) {
             clearTimeout(this.scanTimeouts.get(fsPath)!);
         }
 
         this.scanTimeouts.set(fsPath, setTimeout(() => {
-            this.processFile(doc);
+            this.processContent(uri, content);
             this.refresh();
         }, 500));
     }
 
-    private processFile(doc: vscode.TextDocument) {
-
-        const regex = /(TODO|FIXME|BUG)\s*(?:\[(HIGH|MEDIUM|LOW)\])?\s*(?:\[(.*?)\])?\s*:\s*(.*)/i;
+    private processContent(uri: vscode.Uri, content: string) {
+        const config = vscode.workspace.getConfiguration('visor');
+        const tags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG']);
+        const tagsPattern = tags.join('|');
+        const regex = new RegExp(`(${tagsPattern})\\s*(?:\\[(HIGH|MEDIUM|LOW)\\])?\\s*(?:\\[(.*?)\\])?\\s*:\\s*(.*)`, 'i');
 
         const items: TodoItem[] = [];
-        const lines = doc.getText().split('\n');
+        const lines = content.split('\n');
 
         lines.forEach((lineText, index) => {
             const match = lineText.match(regex);
@@ -72,11 +103,15 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
                 const date = match[3] || new Date().toISOString().split('T')[0];
                 const task = match[4].trim();
 
-                items.push(new TodoItem(task, doc.uri, index, priority as any, date));
+                items.push(new TodoItem(task, uri, index, priority as any, date));
             }
         });
 
-        this.todos.set(doc.uri.fsPath, items);
+        if (items.length > 0) {
+            this.todos.set(uri.fsPath, items);
+        } else {
+            this.todos.delete(uri.fsPath);
+        }
     }
 
     setFilter(filter: string) {

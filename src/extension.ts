@@ -93,6 +93,70 @@ export function activate(context: vscode.ExtensionContext) {
             provider.setSearch(keyword || '');
         })
     );
+    // Inline Decorations
+    const highDecoration = vscode.window.createTextEditorDecorationType({
+        color: new vscode.ThemeColor('problemsErrorIcon.foreground'),
+        fontWeight: 'bold'
+    });
+    const mediumDecoration = vscode.window.createTextEditorDecorationType({
+        color: new vscode.ThemeColor('problemsWarningIcon.foreground'),
+        fontWeight: 'bold'
+    });
+    const lowDecoration = vscode.window.createTextEditorDecorationType({
+        color: new vscode.ThemeColor('problemsInfoIcon.foreground'),
+        fontWeight: 'bold'
+    });
+
+    let decorationTimeout: any;
+
+    function updateDecorations() {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) return;
+
+        const config = vscode.workspace.getConfiguration('visor');
+        const tags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG']);
+        const tagsPattern = tags.join('|');
+        const regex = new RegExp(`(${tagsPattern})\\s*(?:\\[(HIGH|MEDIUM|LOW)\\])?`, 'gi');
+
+        const text = editor.document.getText();
+        const highs: vscode.DecorationOptions[] = [];
+        const mediums: vscode.DecorationOptions[] = [];
+        const lows: vscode.DecorationOptions[] = [];
+
+        let match;
+        while ((match = regex.exec(text))) {
+            const startPos = editor.document.positionAt(match.index);
+            const endPos = editor.document.positionAt(match.index + match[0].length);
+            const decoration = { range: new vscode.Range(startPos, endPos) };
+
+            const priority = match[2] ? match[2].toUpperCase() : 'MEDIUM';
+            if (priority === 'HIGH') highs.push(decoration);
+            else if (priority === 'MEDIUM') mediums.push(decoration);
+            else lows.push(decoration);
+        }
+
+        editor.setDecorations(highDecoration, highs);
+        editor.setDecorations(mediumDecoration, mediums);
+        editor.setDecorations(lowDecoration, lows);
+    }
+
+    function triggerUpdateDecorations(throttle = false) {
+        if (decorationTimeout) clearTimeout(decorationTimeout);
+        if (throttle) {
+            decorationTimeout = setTimeout(updateDecorations, 500);
+        } else {
+            updateDecorations();
+        }
+    }
+
+    vscode.window.onDidChangeActiveTextEditor(() => triggerUpdateDecorations(false), null, context.subscriptions);
+    vscode.workspace.onDidChangeTextDocument(event => {
+        if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
+            triggerUpdateDecorations(true);
+        }
+    }, null, context.subscriptions);
+
+    triggerUpdateDecorations();
 }
 
 export function deactivate() {}
