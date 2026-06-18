@@ -1,21 +1,46 @@
 {
   "name": "visor",
-  "displayName": "visor",
-  "description": "Instant Code Understanding VS Code Extension",
+  "displayName": "Visor",
+  "description": "Smart TODO Manager with priority, search, and filters inside VS Code",
   "version": "0.0.1",
   "publisher": "Bavanetha27",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bavanetha27/visor"
+  },
+  "license": "MIT",
+
   "engines": {
     "vscode": "^1.110.0"
   },
+
   "categories": [
+    "Productivity",
     "Other"
   ],
-"activationEvents": [
-    "onView:todoView",
-    "onCommand:visor.refresh"
+
+  "keywords": [
+    "todo",
+    "task",
+    "productivity",
+    "code",
+    "tracker",
+    "visor"
   ],
+
+  "activationEvents": [
+    "onView:visorTodos",
+    "onCommand:visor.refresh",
+    "onCommand:visor.addTodo",
+    "onCommand:visor.setFilter",
+    "onCommand:visor.searchTodo"
+  ],
+
   "main": "./out/extension.js",
+
   "contributes": {
+
     "viewsContainers": {
       "activitybar": [
         {
@@ -25,6 +50,7 @@
         }
       ]
     },
+
     "views": {
       "visor-sidebar": [
         {
@@ -33,28 +59,70 @@
         }
       ]
     },
+
     "commands": [
       {
         "command": "visor.refresh",
-        "title": "Refresh TODOs"
+        "title": "Refresh TODOs",
+        "category": "Visor"
+      },
+      {
+        "command": "visor.addTodo",
+        "title": "Add TODO",
+        "category": "Visor",
+        "icon": "$(add)"
+      },
+      {
+        "command": "visor.setFilter",
+        "title": "Filter TODOs",
+        "category": "Visor",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "visor.searchTodo",
+        "title": "Search TODOs",
+        "category": "Visor",
+        "icon": "$(search)"
+      },
+      {
+        "command": "visor.openTodo",
+        "title": "Open TODO",
+        "category": "Visor"
       }
-    ]
+    ],
+
+    "menus": {
+      "view/title": [
+        {
+          "command": "visor.setFilter",
+          "when": "view == visorTodos",
+          "group": "navigation@1"
+        },
+        {
+          "command": "visor.searchTodo",
+          "when": "view == visorTodos",
+          "group": "navigation@2"
+        }
+      ]
+    }
   },
+
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
+    "pretest": "npm run compile && npm run lint",
     "test": "vscode-test"
   },
+
   "devDependencies": {
     "@types/vscode": "^1.110.0",
-    "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.56.1",
-    "eslint": "^9.39.3",
+    "@types/mocha": "^10.0.10",
     "typescript": "^5.9.3",
+    "eslint": "^9.39.3",
+    "typescript-eslint": "^8.56.1",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2"
   }
