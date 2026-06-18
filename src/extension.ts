@@ -33,17 +33,17 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('visor.addTodo', async () => {
             const editor = vscode.window.activeTextEditor;
-            if (!editor) return;
+            if (!editor) {return;}
 
             const task = await vscode.window.showInputBox({ prompt: "Enter TODO task description" });
-            if (!task) return;
+            if (!task) {return;}
 
             const prioritySelection = await vscode.window.showQuickPick([
                 { label: '$(error) HIGH', description: 'Critical priority task', value: 'HIGH' },
                 { label: '$(warning) MEDIUM', description: 'Normal priority task', value: 'MEDIUM' },
                 { label: '$(info) LOW', description: 'Low priority task', value: 'LOW' }
             ], { placeHolder: 'Select Priority' });
-            if (!prioritySelection) return;
+            if (!prioritySelection) {return;}
             const priority = prioritySelection.value;
 
             const date = new Date().toISOString().split('T')[0];
@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
                 { label: '$(watch) OVERDUE', value: 'OVERDUE' }
             ], { placeHolder: 'Filter Visor TODOs' });
             
-            if (filterSelection) provider.setFilter(filterSelection.value);
+            if (filterSelection) {provider.setFilter(filterSelection.value);}
         })
     );
 
@@ -111,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     function updateDecorations() {
         const editor = vscode.window.activeTextEditor;
-        if (!editor) return;
+        if (!editor) {return;}
 
         const config = vscode.workspace.getConfiguration('visor');
         const tags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG']);
@@ -130,9 +130,9 @@ export function activate(context: vscode.ExtensionContext) {
             const decoration = { range: new vscode.Range(startPos, endPos) };
 
             const priority = match[2] ? match[2].toUpperCase() : 'MEDIUM';
-            if (priority === 'HIGH') highs.push(decoration);
-            else if (priority === 'MEDIUM') mediums.push(decoration);
-            else lows.push(decoration);
+            if (priority === 'HIGH') {highs.push(decoration);}
+            else if (priority === 'MEDIUM') {mediums.push(decoration);}
+            else {lows.push(decoration);}
         }
 
         editor.setDecorations(highDecoration, highs);
@@ -141,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     function triggerUpdateDecorations(throttle = false) {
-        if (decorationTimeout) clearTimeout(decorationTimeout);
+        if (decorationTimeout) {clearTimeout(decorationTimeout);}
         if (throttle) {
             decorationTimeout = setTimeout(updateDecorations, 500);
         } else {

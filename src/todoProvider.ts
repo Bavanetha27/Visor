@@ -52,8 +52,8 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private scanTimeouts: Map<string, any> = new Map();
 
     scanSingleFile(doc: vscode.TextDocument) {
-        if (doc.getText().length > 100000) return;
-        if (this.fileVersions.get(doc.uri.fsPath) === doc.version) return;
+        if (doc.getText().length > 100000) {return;}
+        if (this.fileVersions.get(doc.uri.fsPath) === doc.version) {return;}
 
         this.fileVersions.set(doc.uri.fsPath, doc.version);
 
@@ -64,7 +64,7 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         try {
             const data = await vscode.workspace.fs.readFile(uri);
             const content = new TextDecoder('utf-8').decode(data);
-            if (content.length > 100000) return;
+            if (content.length > 100000) {return;}
             
             if (isInitial) {
                 this.processContent(uri, content);
@@ -125,7 +125,7 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     }
 
     refresh() {
-        if (this.refreshTimeout) clearTimeout(this.refreshTimeout);
+        if (this.refreshTimeout) {clearTimeout(this.refreshTimeout);}
         this.refreshTimeout = setTimeout(() => {
             this._onDidChangeTreeData.fire();
         }, 300);
@@ -151,16 +151,16 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
                 // FILTER
                 if (this.filter !== 'ALL') {
-                    if (this.filter === 'OVERDUE' && !todo.description?.toString().includes('Overdue')) return;
-                    if (['HIGH','MEDIUM','LOW'].includes(this.filter) && todo.priority !== this.filter) return;
+                    if (this.filter === 'OVERDUE' && !todo.description?.toString().includes('Overdue')) {return;}
+                    if (['HIGH','MEDIUM','LOW'].includes(this.filter) && todo.priority !== this.filter) {return;}
                 }
 
                 // SEARCH
-                if (this.search && !todo.label!.toString().toLowerCase().includes(this.search)) return;
+                if (this.search && !todo.label!.toString().toLowerCase().includes(this.search)) {return;}
 
-                if (todo.priority === 'HIGH') groups['HIGH'].push(todo);
-                else if (todo.priority === 'MEDIUM') groups['MEDIUM'].push(todo);
-                else groups['LOW'].push(todo);
+                if (todo.priority === 'HIGH') {groups['HIGH'].push(todo);}
+                else if (todo.priority === 'MEDIUM') {groups['MEDIUM'].push(todo);}
+                else {groups['LOW'].push(todo);}
             });
 
             return Promise.resolve(
@@ -170,7 +170,7 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
             );
         }
 
-        if (element instanceof PriorityGroup) return Promise.resolve(element.todos);
+        if (element instanceof PriorityGroup) {return Promise.resolve(element.todos);}
 
         return Promise.resolve([]);
     }
