@@ -1,71 +1,56 @@
-# visor README
+# Visor: Smart TODO Manager for VS Code
 
-This is the README for your extension "visor". After writing up a brief description, we recommend including the following sections.
+Visor is a powerful, integrated task manager for Visual Studio Code that seamlessly extracts, organizes, and tracks `TODO`, `FIXME`, and `BUG` comments directly from your codebase. Keep your workflow focused by managing your tasks right where you write your code.
 
-## Features
+## 🚀 Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Automatic Task Scanning**: Instantly scans your workspace for `TODO`, `FIXME`, and `BUG` comments.
+- **Priority Grouping**: Tasks are automatically grouped by `HIGH`, `MEDIUM`, and `LOW` priorities.
+- **Deadlines & Overdue Tracking**: Add dates to your tasks and easily see how many days are left or if they are overdue.
+- **The "DONE" List**: Mark tasks as done directly from the sidebar. Completed tasks are moved to a dedicated `DONE` group.
+- **One-Click Cleanup**: Individually delete tasks or use the "Delete All Done" button to permanently clear out all completed tasks from your code.
+- **Inline Editor Highlighting**: Visually highlights tasks directly in your code with distinct colors based on their priority.
+- **Search & Filtering**: Quickly find specific tasks or filter them by priority (e.g., view only `HIGH` or `OVERDUE` tasks).
+- **Lightning Fast**: Optimized with concurrent file scanning and debounced real-time updates as you type.
 
-For example if there is an image subfolder under your extension project workspace:
+## 💡 How to Use
 
-\!\[feature X\]\(images/feature-x.png\)
+Visor parses your comments based on a simple syntax:
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+```typescript
+// TODO[PRIORITY][YYYY-MM-DD]: Your task description
+```
 
-## Requirements
+**Examples:**
+- `// TODO[HIGH]: Fix the database connection`
+- `// FIXME[MEDIUM][2026-10-15]: Refactor this function`
+- `// BUG[LOW]: Typo in the variable name`
+- `<!-- TODO: Update the meta tags -->`
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## 🖱️ Sidebar Actions
 
-## Extension Settings
+Hover over any task in the **Visor TODOs** sidebar to access quick actions:
+- **Mark as Done (`✔`)**: Changes your task's tag to `DONE`, moving it to the DONE group.
+- **Delete TODO (`🗑`)**: Completely removes the task's line of code from your file.
+- **Delete All Done (`🗑` on DONE folder)**: Scans all completed tasks and removes their lines from your codebase in one go.
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## ⚙️ Extension Settings
 
-For example:
+Visor is highly customizable. You can configure the following settings in your `settings.json`:
 
-This extension contributes the following settings:
+* `visor.tags`: An array of keywords to scan for (default: `["TODO", "FIXME", "BUG"]`).
+* `visor.ignoreFolders`: Folders to ignore during the scan to keep it fast (default: `["node_modules", ".git", "dist", "build", "out"]`).
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## 📋 Requirements
 
-## Known Issues
+Visor requires Visual Studio Code version `1.107.0` or higher.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## 📝 Release Notes
 
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+### 0.0.1
+* Initial release of Visor!
+* Added priority grouping, deadlines, and inline editor decorations.
+* Added Mark as Done, Delete TODO, and Delete All Done actions.
 
 ---
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Enjoying Visor?** Feel free to leave a review or contribute to the repository!
