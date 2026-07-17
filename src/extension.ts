@@ -93,6 +93,75 @@ export function activate(context: vscode.ExtensionContext) {
             provider.setSearch(keyword || '');
         })
     );
+
+    // Mark as Done
+    context.subscriptions.push(
+        vscode.commands.registerCommand('visor.markDone', async (node: any) => {
+            if (!node || !node.file || node.line === undefined) {return;}
+            const doc = await vscode.workspace.openTextDocument(node.file);
+            const line = doc.lineAt(node.line);
+            
+            const config = vscode.workspace.getConfiguration('visor');
+            const tags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG']);
+            const tagsPattern = tags.join('|');
+            const regex = new RegExp(`(${tagsPattern})`, 'i');
+            
+            const newLineText = line.text.replace(regex, 'DONE');
+            
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(node.file, line.range, newLineText);
+            await vscode.workspace.applyEdit(edit);
+            await doc.save();
+        })
+    );
+
+    // Delete TODO
+    context.subscriptions.push(
+        vscode.commands.registerCommand('visor.deleteTodo', async (node: any) => {
+            if (!node || !node.file || node.line === undefined) {return;}
+            const doc = await vscode.workspace.openTextDocument(node.file);
+            const line = doc.lineAt(node.line);
+            
+            const edit = new vscode.WorkspaceEdit();
+            edit.delete(node.file, line.rangeIncludingLineBreak);
+            await vscode.workspace.applyEdit(edit);
+            await doc.save();
+        })
+    );
+
+    // Delete All Done
+    context.subscriptions.push(
+        vscode.commands.registerCommand('visor.deleteAllDone', async (group: any) => {
+            if (!group || !group.todos) {return;}
+            const edit = new vscode.WorkspaceEdit();
+            const docsToSave = new Set<vscode.TextDocument>();
+
+            const todosByFile = new Map<string, any[]>();
+            for (const todo of group.todos) {
+                const fsPath = todo.file.fsPath;
+                if (!todosByFile.has(fsPath)) {
+                    todosByFile.set(fsPath, []);
+                }
+                todosByFile.get(fsPath)!.push(todo);
+            }
+
+            for (const [fsPath, todos] of todosByFile.entries()) {
+                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fsPath));
+                docsToSave.add(doc);
+                
+                for (const todo of todos) {
+                    const line = doc.lineAt(todo.line);
+                    edit.delete(todo.file, line.rangeIncludingLineBreak);
+                }
+            }
+
+            await vscode.workspace.applyEdit(edit);
+            for (const doc of docsToSave) {
+                await doc.save();
+            }
+        })
+    );
+
     // Inline Decorations
     const highDecoration = vscode.window.createTextEditorDecorationType({
         color: new vscode.ThemeColor('problemsErrorIcon.foreground'),

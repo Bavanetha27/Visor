@@ -42,8 +42,11 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 
             const files = await vscode.workspace.findFiles('**/*', excludePattern);
 
-            for (const file of files) {
-                await this.scanUri(file, true);
+            // Process files concurrently in batches to improve loading speed
+            const batchSize = 50;
+            for (let i = 0; i < files.length; i += batchSize) {
+                const batch = files.slice(i, i + batchSize);
+                await Promise.all(batch.map(file => this.scanUri(file, true)));
             }
             this.refresh();
         });
@@ -52,8 +55,8 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private scanTimeouts: Map<string, any> = new Map();
 
     scanSingleFile(doc: vscode.TextDocument) {
-        if (doc.getText().length > 100000) {return;}
-        if (this.fileVersions.get(doc.uri.fsPath) === doc.version) {return;}
+        if (doc.getText().length > 100000) { return; }
+        if (this.fileVersions.get(doc.uri.fsPath) === doc.version) { return; }
 
         this.fileVersions.set(doc.uri.fsPath, doc.version);
 
@@ -64,14 +67,14 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         try {
             const data = await vscode.workspace.fs.readFile(uri);
             const content = new TextDecoder('utf-8').decode(data);
-            if (content.length > 100000) {return;}
-            
+            if (content.length > 100000) { return; }
+
             if (isInitial) {
                 this.processContent(uri, content);
             } else {
                 this.debounceScan(uri, content);
             }
-        } catch {}
+        } catch { }
     }
 
     private debounceScan(uri: vscode.Uri, content: string) {
@@ -90,7 +93,7 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
         const config = vscode.workspace.getConfiguration('visor');
         const tags = config.get<string[]>('tags', ['TODO', 'FIXME', 'BUG']);
         const tagsPattern = tags.join('|');
-        const regex = new RegExp(`(${tagsPattern})\\s*(?:\\[(HIGH|MEDIUM|LOW)\\])?\\s*(?:\\[(.*?)\\])?\\s*:\\s*(.*)`, 'i');
+        const regex = new RegExp(`(${tagsPattern}|DONE)\\s*(?:\\[(HIGH|MEDIUM|LOW)\\])?\\s*(?:\\[(.*?)\\])?\\s*:\\s*(.*)`, 'i');
 
         const items: TodoItem[] = [];
         const lines = content.split('\n');
@@ -99,11 +102,12 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
             const match = lineText.match(regex);
 
             if (match) {
+                const tag = match[1].toUpperCase();
                 const priority = match[2] ? match[2].toUpperCase() : 'MEDIUM';
                 const date = match[3] || new Date().toISOString().split('T')[0];
                 const task = match[4].trim();
 
-                items.push(new TodoItem(task, uri, index, priority as any, date));
+                items.push(new TodoItem(task, uri, index, priority as any, date, tag));
             }
         });
 
@@ -125,7 +129,7 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     }
 
     refresh() {
-        if (this.refreshTimeout) {clearTimeout(this.refreshTimeout);}
+        if (this.refreshTimeout) { clearTimeout(this.refreshTimeout); }
         this.refreshTimeout = setTimeout(() => {
             this._onDidChangeTreeData.fire();
         }, 300);
@@ -144,33 +148,35 @@ export class TodoProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
             const groups: Record<string, TodoItem[]> = {
                 'HIGH': [],
                 'MEDIUM': [],
-                'LOW': []
+                'LOW': [],
+                'DONE': []
             };
 
             Array.from(this.todos.values()).flat().forEach(todo => {
 
                 // FILTER
                 if (this.filter !== 'ALL') {
-                    if (this.filter === 'OVERDUE' && !todo.description?.toString().includes('Overdue')) {return;}
-                    if (['HIGH','MEDIUM','LOW'].includes(this.filter) && todo.priority !== this.filter) {return;}
+                    if (this.filter === 'OVERDUE' && !todo.description?.toString().includes('Overdue')) { return; }
+                    if (['HIGH', 'MEDIUM', 'LOW'].includes(this.filter) && todo.priority !== this.filter) { return; }
                 }
 
                 // SEARCH
-                if (this.search && !todo.label!.toString().toLowerCase().includes(this.search)) {return;}
+                if (this.search && !todo.label!.toString().toLowerCase().includes(this.search)) { return; }
 
-                if (todo.priority === 'HIGH') {groups['HIGH'].push(todo);}
-                else if (todo.priority === 'MEDIUM') {groups['MEDIUM'].push(todo);}
-                else {groups['LOW'].push(todo);}
+                if (todo.tag === 'DONE') { groups['DONE'].push(todo); }
+                else if (todo.priority === 'HIGH') { groups['HIGH'].push(todo); }
+                else if (todo.priority === 'MEDIUM') { groups['MEDIUM'].push(todo); }
+                else { groups['LOW'].push(todo); }
             });
 
             return Promise.resolve(
-                Object.keys(groups).map(k =>
-                    new PriorityGroup(k, groups[k])
-                )
-            );
+                Object.keys(groups)
+                    .filter(k => groups[k].length > 0 || k !== 'DONE') // Hide DONE if empty, optional. Let's just map all for now.
+                    .map(k => new PriorityGroup(k, groups[k]))
+            )
         }
 
-        if (element instanceof PriorityGroup) {return Promise.resolve(element.todos);}
+        if (element instanceof PriorityGroup) { return Promise.resolve(element.todos); }
 
         return Promise.resolve([]);
     }
@@ -184,11 +190,14 @@ class PriorityGroup extends vscode.TreeItem {
     ) {
         super(label, collapsibleState);
         this.description = `${todos.length} tasks`;
-        
+        this.contextValue = label === 'DONE' ? 'doneGroup' : 'priorityGroup';
+
         if (label === 'HIGH') {
             this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('problemsErrorIcon.foreground'));
         } else if (label === 'MEDIUM') {
             this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('problemsWarningIcon.foreground'));
+        } else if (label === 'DONE') {
+            this.iconPath = new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
         } else {
             this.iconPath = new vscode.ThemeIcon('info', new vscode.ThemeColor('problemsInfoIcon.foreground'));
         }
@@ -201,15 +210,16 @@ class TodoItem extends vscode.TreeItem {
         public readonly file: vscode.Uri,
         public readonly line: number,
         public readonly priority: 'HIGH' | 'MEDIUM' | 'LOW',
-        public readonly date: string
+        public readonly date: string,
+        public readonly tag: string
     ) {
         super(task, vscode.TreeItemCollapsibleState.None);
 
         const today = new Date();
         const deadline = new Date(date);
-        const diff = Math.ceil((deadline.getTime() - today.getTime()) / (1000*60*60*24));
+        const diff = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         const status = diff < 0 ? 'Overdue' : `${diff} days left`;
-        
+
         const fileName = file.fsPath.split(/[\\/]/).pop();
 
         this.description = `${fileName}:${line + 1} • ${status}`;
@@ -230,5 +240,7 @@ class TodoItem extends vscode.TreeItem {
             title: 'Open TODO',
             arguments: [file, line]
         };
+
+        this.contextValue = tag === 'DONE' ? 'doneItem' : 'todoItem';
     }
 }

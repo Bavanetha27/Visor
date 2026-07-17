@@ -12,7 +12,7 @@
   "license": "MIT",
 
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.107.0"
   },
 
   "categories": [
@@ -106,6 +106,24 @@
         "command": "visor.openTodo",
         "title": "Open TODO",
         "category": "Visor"
+      },
+      {
+        "command": "visor.markDone",
+        "title": "Mark as Done",
+        "category": "Visor",
+        "icon": "$(check)"
+      },
+      {
+        "command": "visor.deleteTodo",
+        "title": "Delete TODO",
+        "category": "Visor",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "visor.deleteAllDone",
+        "title": "Delete All Done",
+        "category": "Visor",
+        "icon": "$(trash)"
       }
     ],
 
@@ -121,6 +139,23 @@
           "when": "view == visorTodos",
           "group": "navigation@2"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "visor.markDone",
+          "when": "view == visorTodos && viewItem == todoItem",
+          "group": "inline@1"
+        },
+        {
+          "command": "visor.deleteTodo",
+          "when": "view == visorTodos && viewItem =~ /^(todoItem|doneItem)$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "visor.deleteAllDone",
+          "when": "view == visorTodos && viewItem == doneGroup",
+          "group": "inline"
+        }
       ]
     }
   },
@@ -135,7 +170,7 @@
   },
 
   "devDependencies": {
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "^1.107.0",
     "@types/node": "22.x",
     "@types/mocha": "^10.0.10",
     "typescript": "^5.9.3",
